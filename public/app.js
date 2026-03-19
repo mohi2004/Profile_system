@@ -7,11 +7,14 @@ import {
   validateProfile
 } from './js/validation.js';
 import {
+  clearLikes,
   clearProfiles,
   deleteProfile,
   getAllProfiles,
+  getLikedProfileIds,
   recoverDatabase,
   seedProfiles,
+  toggleProfileLike,
   upsertProfile
 } from './js/storage.js';
 
@@ -23,7 +26,10 @@ const bioCounter = document.querySelector('#bio-counter');
 const submitButton = document.querySelector('#submit-button');
 const deleteCurrentButton = document.querySelector('#delete-current');
 const profilesContainer = document.querySelector('#profiles');
-const template = document.querySelector('#profile-card-template');
+const likesGrid = document.querySelector('#likes-grid');
+const likesEmptyState = document.querySelector('#likes-empty-state');
+const profileTemplate = document.querySelector('#profile-card-template');
+const likedCardTemplate = document.querySelector('#liked-card-template');
 const searchInput = document.querySelector('#search');
 const roleFilterInput = document.querySelector('#role-filter');
 const sortOrderInput = document.querySelector('#sort-order');
@@ -34,15 +40,20 @@ const loadingState = document.querySelector('#loading-state');
 const selectedProfilePanel = document.querySelector('#selected-profile-panel');
 const themeToggle = document.querySelector('#theme-toggle');
 const toast = document.querySelector('#toast');
+const showcasePills = document.querySelector('#showcase-pills');
 const heroTotalProfiles = document.querySelector('#hero-total-profiles');
 const heroRoleCount = document.querySelector('#hero-role-count');
+const heroLikedCount = document.querySelector('#hero-liked-count');
 const insightTotal = document.querySelector('#insight-total');
 const insightTopRole = document.querySelector('#insight-top-role');
+const insightLiked = document.querySelector('#insight-liked');
 const insightLastUpdated = document.querySelector('#insight-last-updated');
+const likesTotalCount = document.querySelector('#likes-total-count');
 
 const state = {
   profiles: [],
   filteredProfiles: [],
+  likedIds: new Set(),
   selectedProfileId: '',
   isHydrating: false
 };
@@ -52,7 +63,7 @@ function escapeHtml(value = '') {
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
-    .replaceAll('\"', '&quot;')
+    .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 }
 
@@ -82,7 +93,7 @@ function showToast(message) {
     window.setTimeout(() => {
       toast.hidden = true;
     }, 250);
-  }, 2500);
+  }, 2600);
 }
 
 function setStatus(message, tone = '') {
@@ -92,10 +103,6 @@ function setStatus(message, tone = '') {
 
 function setValidationErrors(errors = []) {
   validationList.innerHTML = '';
-  if (errors.length === 0) {
-    return;
-  }
-
   errors.forEach((error) => {
     const item = document.createElement('li');
     item.textContent = error;
@@ -157,8 +164,26 @@ function selectProfile(profileId) {
   renderSelectedProfile();
 }
 
+function getProfileById(profileId) {
+  return state.profiles.find((entry) => entry.id === profileId);
+}
+
+function isLiked(profileId) {
+  return state.likedIds.has(profileId);
+}
+
+function buildMetaPills(profile) {
+  const values = [profile.department, profile.year, ...(profile.interests || []).slice(0, 2)].filter(Boolean);
+  return values.map((value) => `<span class="meta-pill">${escapeHtml(value)}</span>`).join('');
+}
+
+function renderShowcasePills() {
+  const tags = [...new Set(state.profiles.flatMap((profile) => [profile.role, ...(profile.interests || [])]))].slice(0, 8);
+  showcasePills.innerHTML = tags.map((tag) => `<span class="showcase-pill">${escapeHtml(tag)}</span>`).join('');
+}
+
 function renderSelectedProfile() {
-  const profile = state.profiles.find((entry) => entry.id === state.selectedProfileId);
+  const profile = getProfileById(state.selectedProfileId);
 
   if (!profile) {
     selectedProfilePanel.innerHTML = '<p class="selected-profile-placeholder">Select a profile to inspect its details here.</p>';
@@ -174,16 +199,33 @@ function renderSelectedProfile() {
         <p>${escapeHtml(profile.role)}</p>
       </div>
     </div>
+    <p class="selected-profile-tagline">${escapeHtml(profile.tagline || 'High-potential profile with strong presentation value.')}</p>
     <p class="selected-profile-body">${escapeHtml(profile.bio)}</p>
     <div class="selected-profile-meta">
       <span>${escapeHtml(profile.email)}</span>
       <span>${escapeHtml(profile.location || 'Location pending')}</span>
       <span>Updated ${escapeHtml(formatRelativeDate(profile.updatedAt))}</span>
     </div>
+    <div class="selected-profile-pills">${buildMetaPills(profile)}</div>
     <div class="skills-list">
       ${(profile.skills || []).map((skill) => `<span class="skill-chip">${escapeHtml(skill)}</span>`).join('')}
     </div>
+    <div class="selected-profile-actions">
+      <button class="like-button ${isLiked(profile.id) ? 'like-button--active' : ''}" type="button" data-like-profile-id="${escapeHtml(profile.id)}" aria-pressed="${isLiked(profile.id)}">
+        <span class="like-button__icon">♥</span>
+        <span class="like-button__label">${isLiked(profile.id) ? 'Liked profile' : 'Save to Like System'}</span>
+      </button>
+      <button class="ghost-button small-button" type="button" data-edit-profile-id="${escapeHtml(profile.id)}">Edit profile</button>
+    </div>
   `;
+
+  selectedProfilePanel.querySelector('[data-like-profile-id]')?.addEventListener('click', async () => {
+    await handleToggleLike(profile.id, profile.fullName);
+  });
+
+  selectedProfilePanel.querySelector('[data-edit-profile-id]')?.addEventListener('click', () => {
+    populateForm(profile);
+  });
 }
 
 function renderInsights() {
@@ -198,9 +240,68 @@ function renderInsights() {
 
   heroTotalProfiles.textContent = String(state.profiles.length);
   heroRoleCount.textContent = String(roles.size);
+  heroLikedCount.textContent = String(state.likedIds.size);
   insightTotal.textContent = String(state.profiles.length);
   insightTopRole.textContent = topRole ? `${topRole[0]} · ${topRole[1]}` : 'No data yet';
+  insightLiked.textContent = String(state.likedIds.size);
   insightLastUpdated.textContent = latestProfile ? `${latestProfile.fullName} · ${formatRelativeDate(latestProfile.updatedAt)}` : 'Waiting for activity';
+  likesTotalCount.textContent = String(state.likedIds.size);
+  renderShowcasePills();
+}
+
+function attachCardActions(node, profile) {
+  node.querySelector('.edit-button')?.addEventListener('click', () => {
+    populateForm(profile);
+    selectProfile(profile.id);
+  });
+
+  node.querySelector('.inspect-button')?.addEventListener('click', () => {
+    selectProfile(profile.id);
+    document.querySelector('#workspace').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  node.querySelector('.delete-button')?.addEventListener('click', async () => {
+    const confirmed = window.confirm(`Delete ${profile.fullName} from local browser storage?`);
+    if (!confirmed) return;
+    await handleDelete(profile.id, profile.fullName);
+  });
+
+  node.querySelector('.like-button')?.addEventListener('click', async () => {
+    await handleToggleLike(profile.id, profile.fullName);
+  });
+}
+
+function hydrateProfileCard(fragment, profile) {
+  const card = fragment.querySelector('.profile-card');
+  const liked = isLiked(profile.id);
+  fragment.querySelector('.avatar').src = profile.avatar || createAvatar(profile.fullName);
+  fragment.querySelector('.avatar').alt = `${profile.fullName} avatar`;
+  fragment.querySelector('.profile-name').textContent = profile.fullName;
+  fragment.querySelector('.profile-role').textContent = profile.role;
+  fragment.querySelector('.profile-email').textContent = profile.email;
+  fragment.querySelector('.profile-tagline').textContent = profile.tagline || 'Believable, demo-ready sample profile';
+  fragment.querySelector('.profile-bio').textContent = profile.bio;
+  fragment.querySelector('.profile-location').textContent = profile.location || 'Location not provided';
+  fragment.querySelector('.profile-updated').textContent = `Updated ${formatRelativeDate(profile.updatedAt)}`;
+  fragment.querySelector('.profile-extra-meta').innerHTML = buildMetaPills(profile);
+
+  const likeButton = fragment.querySelector('.like-button');
+  likeButton.classList.toggle('like-button--active', liked);
+  likeButton.setAttribute('aria-pressed', String(liked));
+  likeButton.querySelector('.like-button__label').textContent = liked ? 'Liked' : 'Like';
+
+  const skillsList = fragment.querySelector('.skills-list');
+  (profile.skills || []).forEach((skill) => {
+    const chip = document.createElement('span');
+    chip.className = 'skill-chip';
+    chip.textContent = skill;
+    skillsList.appendChild(chip);
+  });
+
+  if (card) {
+    card.dataset.liked = String(liked);
+    attachCardActions(card, profile);
+  }
 }
 
 function renderProfiles() {
@@ -221,15 +322,26 @@ function renderProfiles() {
   }
 
   ordered.forEach((profile) => {
-    const fragment = template.content.cloneNode(true);
+    const fragment = profileTemplate.content.cloneNode(true);
+    hydrateProfileCard(fragment, profile);
+    profilesContainer.appendChild(fragment);
+  });
+}
+
+function renderLikes() {
+  const likedProfiles = state.profiles.filter((profile) => isLiked(profile.id));
+  likesGrid.innerHTML = '';
+  likesEmptyState.hidden = likedProfiles.length !== 0;
+
+  likedProfiles.forEach((profile) => {
+    const fragment = likedCardTemplate.content.cloneNode(true);
     fragment.querySelector('.avatar').src = profile.avatar || createAvatar(profile.fullName);
     fragment.querySelector('.avatar').alt = `${profile.fullName} avatar`;
     fragment.querySelector('.profile-name').textContent = profile.fullName;
     fragment.querySelector('.profile-role').textContent = profile.role;
     fragment.querySelector('.profile-email').textContent = profile.email;
+    fragment.querySelector('.profile-tagline').textContent = profile.tagline || 'Saved from the directory';
     fragment.querySelector('.profile-bio').textContent = profile.bio;
-    fragment.querySelector('.profile-location').textContent = profile.location || 'Location not provided';
-    fragment.querySelector('.profile-card__updated').textContent = `Updated ${formatRelativeDate(profile.updatedAt)}`;
 
     const skillsList = fragment.querySelector('.skills-list');
     (profile.skills || []).forEach((skill) => {
@@ -239,24 +351,11 @@ function renderProfiles() {
       skillsList.appendChild(chip);
     });
 
-    fragment.querySelector('.edit-button').addEventListener('click', () => {
-      populateForm(profile);
-      selectProfile(profile.id);
+    fragment.querySelector('.like-button')?.addEventListener('click', async () => {
+      await handleToggleLike(profile.id, profile.fullName);
     });
 
-    fragment.querySelector('.inspect-button').addEventListener('click', () => {
-      selectProfile(profile.id);
-      document.querySelector('#workspace').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-
-    fragment.querySelector('.delete-button').addEventListener('click', async () => {
-      const confirmed = window.confirm(`Delete ${profile.fullName} from local browser storage?`);
-      if (!confirmed) return;
-
-      await handleDelete(profile.id, profile.fullName);
-    });
-
-    profilesContainer.appendChild(fragment);
+    likesGrid.appendChild(fragment);
   });
 }
 
@@ -264,22 +363,27 @@ function refreshUI() {
   renderProfiles();
   renderInsights();
   renderSelectedProfile();
+  renderLikes();
 }
 
 async function hydrateProfiles() {
   setLoading(true);
 
   try {
-    const existing = await getAllProfiles();
-    state.profiles = existing.length > 0 ? existing : await seedProfiles();
+    const [existingProfiles, likedIds] = await Promise.all([getAllProfiles(), getLikedProfileIds()]);
+    state.profiles = existingProfiles.length > 0 ? existingProfiles : await seedProfiles();
+    state.likedIds = new Set(likedIds);
+
     if (!state.selectedProfileId && state.profiles[0]) {
       state.selectedProfileId = state.profiles[0].id;
     }
+
     refreshUI();
     setStatus('Local IndexedDB data loaded successfully.', 'success');
   } catch (error) {
     console.error(error);
     state.profiles = await recoverDatabase();
+    state.likedIds = new Set();
     setStatus('Local data was recovered and reseeded from demo profiles.', 'success');
     refreshUI();
     showToast('Recovered browser database.');
@@ -321,6 +425,7 @@ async function saveProfile() {
 async function handleDelete(profileId, name = 'profile') {
   await deleteProfile(profileId);
   state.profiles = await getAllProfiles();
+  state.likedIds.delete(profileId);
 
   if (profileIdInput.value === profileId) {
     resetForm();
@@ -333,6 +438,19 @@ async function handleDelete(profileId, name = 'profile') {
   refreshUI();
   setStatus(`Deleted ${name}.`, 'success');
   showToast(`${name} removed from local storage.`);
+}
+
+async function handleToggleLike(profileId, name = 'profile') {
+  const liked = await toggleProfileLike(profileId);
+
+  if (liked) {
+    state.likedIds.add(profileId);
+  } else {
+    state.likedIds.delete(profileId);
+  }
+
+  refreshUI();
+  showToast(liked ? `${name} added to Like System.` : `${name} removed from Like System.`);
 }
 
 function initializeTiltCards() {
@@ -372,9 +490,10 @@ form.addEventListener('submit', async (event) => {
 });
 
 resetButton.addEventListener('click', resetForm);
+
 deleteCurrentButton.addEventListener('click', async () => {
   if (!profileIdInput.value) return;
-  const profile = state.profiles.find((entry) => entry.id === profileIdInput.value);
+  const profile = getProfileById(profileIdInput.value);
   if (!profile) return;
 
   const confirmed = window.confirm(`Delete ${profile.fullName} from local browser storage?`);
@@ -391,6 +510,8 @@ deleteCurrentButton.addEventListener('click', async () => {
 seedDemoButton.addEventListener('click', async () => {
   await seedProfiles(true);
   state.profiles = await getAllProfiles();
+  state.likedIds = new Set();
+  await clearLikes();
   state.selectedProfileId = state.profiles[0]?.id || '';
   refreshUI();
   setStatus('Demo profiles reloaded into IndexedDB.', 'success');
@@ -398,11 +519,12 @@ seedDemoButton.addEventListener('click', async () => {
 });
 
 clearDataButton.addEventListener('click', async () => {
-  const confirmed = window.confirm('Clear all locally stored profiles from this browser?');
+  const confirmed = window.confirm('Clear all locally stored profiles and likes from this browser?');
   if (!confirmed) return;
 
   await clearProfiles();
   state.profiles = [];
+  state.likedIds = new Set();
   state.selectedProfileId = '';
   resetForm();
   refreshUI();

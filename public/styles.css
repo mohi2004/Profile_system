@@ -2,9 +2,12 @@
   color-scheme: dark;
   --bg: #07111f;
   --bg-secondary: #0c1a2e;
+  --bg-gradient-end: #040913;
   --surface: rgba(8, 19, 38, 0.74);
   --surface-strong: rgba(9, 21, 42, 0.92);
   --surface-soft: rgba(255, 255, 255, 0.04);
+  --surface-elevated: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  --surface-card: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
   --border: rgba(148, 163, 184, 0.18);
   --text: #ebf2ff;
   --muted: #9aaccc;
@@ -13,7 +16,20 @@
   --accent: #74efd3;
   --accent-warm: #ffd39e;
   --danger: #ff7a96;
+  --danger-soft-text: #ffdbe3;
   --success: #7bf0b0;
+  --error-text: #ffc8d4;
+  --active-like-text: #fff1f5;
+  --chip-bg: rgba(255, 255, 255, 0.06);
+  --chip-border: rgba(255, 255, 255, 0.08);
+  --button-ghost-bg: rgba(255, 255, 255, 0.04);
+  --button-like-icon-bg: rgba(255, 255, 255, 0.06);
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --input-border: rgba(148, 163, 184, 0.2);
+  --spinner-track: rgba(255, 255, 255, 0.12);
+  --toast-bg: rgba(9, 21, 42, 0.92);
+  --toast-border: rgba(148, 163, 184, 0.18);
+  --liked-card-shadow: 0 28px 80px rgba(3, 14, 28, 0.45), 0 0 0 1px rgba(116, 239, 211, 0.08) inset;
   --shadow: 0 30px 80px rgba(2, 10, 24, 0.42);
   --radius-xl: 28px;
   --radius-lg: 22px;
@@ -28,9 +44,12 @@
   color-scheme: light;
   --bg: #eff5ff;
   --bg-secondary: #dde9ff;
+  --bg-gradient-end: #f7fbff;
   --surface: rgba(255, 255, 255, 0.76);
   --surface-strong: rgba(255, 255, 255, 0.92);
   --surface-soft: rgba(16, 24, 40, 0.04);
+  --surface-elevated: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(230, 239, 255, 0.88));
+  --surface-card: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(235, 242, 255, 0.9));
   --border: rgba(49, 94, 191, 0.14);
   --text: #122034;
   --muted: #5c6a82;
@@ -39,7 +58,20 @@
   --accent: #0bb89e;
   --accent-warm: #f0a655;
   --danger: #d14e6e;
+  --danger-soft-text: #b03f5d;
   --success: #177756;
+  --error-text: #b03f5d;
+  --active-like-text: #9c3250;
+  --chip-bg: rgba(255, 255, 255, 0.82);
+  --chip-border: rgba(41, 105, 239, 0.12);
+  --button-ghost-bg: rgba(255, 255, 255, 0.74);
+  --button-like-icon-bg: rgba(41, 105, 239, 0.08);
+  --input-bg: rgba(255, 255, 255, 0.9);
+  --input-border: rgba(49, 94, 191, 0.16);
+  --spinner-track: rgba(41, 105, 239, 0.14);
+  --toast-bg: rgba(255, 255, 255, 0.96);
+  --toast-border: rgba(41, 105, 239, 0.16);
+  --liked-card-shadow: 0 20px 56px rgba(53, 96, 176, 0.18), 0 0 0 1px rgba(11, 184, 158, 0.08) inset;
   --shadow: 0 24px 70px rgba(42, 75, 132, 0.16);
 }
 
@@ -57,7 +89,7 @@ body {
   background:
     radial-gradient(circle at top left, rgba(59, 130, 246, 0.22), transparent 28%),
     radial-gradient(circle at 82% 18%, rgba(8, 145, 178, 0.18), transparent 22%),
-    linear-gradient(180deg, var(--bg) 0%, #040913 100%);
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-gradient-end) 100%);
   color: var(--text);
   overflow-x: hidden;
 }
@@ -357,8 +389,8 @@ img {
 .floating-card {
   padding: 1.25rem;
   border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-elevated);
+  border: 1px solid var(--chip-border);
   transform: translateZ(28px);
 }
 
@@ -478,8 +510,8 @@ img {
 .showcase-pill,
 .meta-pill {
   padding: 0.62rem 0.9rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
 }
 
 .feature-icon,
@@ -550,8 +582,8 @@ textarea,
 select {
   width: 100%;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--text);
   padding: 0.92rem 1rem;
   transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
@@ -610,14 +642,14 @@ textarea {
 }
 
 .ghost-button {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--button-ghost-bg);
   color: var(--text);
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  border: 1px solid var(--toast-border);
 }
 
 .danger-button {
   background: rgba(255, 122, 150, 0.12);
-  color: #ffdbe3;
+  color: var(--danger-soft-text);
   border: 1px solid rgba(255, 122, 150, 0.24);
 }
 
@@ -635,7 +667,7 @@ textarea {
 .validation-list {
   margin: 0;
   padding-left: 1.15rem;
-  color: #ffc8d4;
+  color: var(--error-text);
 }
 
 .status-message[data-state='success'] {
@@ -643,7 +675,7 @@ textarea {
 }
 
 .status-message[data-state='error'] {
-  color: #ffc8d4;
+  color: var(--error-text);
 }
 
 .insight-stack {
@@ -661,7 +693,7 @@ textarea {
 }
 
 .selected-profile-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  background: var(--surface-elevated);
   min-height: 280px;
 }
 
@@ -727,7 +759,7 @@ textarea {
   height: 42px;
   border-radius: 50%;
   margin: 0 auto 0.85rem;
-  border: 3px solid rgba(255, 255, 255, 0.12);
+  border: 3px solid var(--spinner-track);
   border-top-color: var(--accent);
   animation: spin 800ms linear infinite;
 }
@@ -742,7 +774,7 @@ textarea {
 }
 
 .profile-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  background: var(--surface-card);
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -753,7 +785,7 @@ textarea {
 
 .profile-card[data-liked='true'] {
   border-color: rgba(116, 239, 211, 0.24);
-  box-shadow: 0 28px 80px rgba(3, 14, 28, 0.45), 0 0 0 1px rgba(116, 239, 211, 0.08) inset;
+  box-shadow: var(--liked-card-shadow);
 }
 
 .profile-card__topline {
@@ -803,8 +835,8 @@ textarea {
   gap: 0.55rem;
   border-radius: 999px;
   padding: 0.72rem 0.95rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: var(--button-ghost-bg);
+  border: 1px solid var(--toast-border);
   color: var(--text);
 }
 
@@ -814,14 +846,14 @@ textarea {
   width: 1.4rem;
   height: 1.4rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--chip-bg);
   transition: transform 180ms ease, background 180ms ease;
 }
 
 .like-button--active {
   background: linear-gradient(135deg, rgba(255, 122, 150, 0.2), rgba(116, 239, 211, 0.18));
   border-color: rgba(255, 122, 150, 0.28);
-  color: #fff1f5;
+  color: var(--active-like-text);
 }
 
 .like-button--active .like-button__icon {
@@ -846,8 +878,8 @@ textarea {
   z-index: 40;
   max-width: min(92vw, 360px);
   padding: 1rem 1.1rem;
-  background: rgba(9, 21, 42, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: var(--toast-bg);
+  border: 1px solid var(--toast-border);
   box-shadow: var(--shadow);
   transform: translateY(18px);
   opacity: 0;

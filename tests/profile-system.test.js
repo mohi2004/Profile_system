@@ -1,17 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
 const http = require('node:http');
-const os = require('node:os');
-const path = require('node:path');
-const { createApp } = require('../src/app');
-const { createProfileStore } = require('../src/profileStore');
+const { createApp, getContentType } = require('../src/app');
 
 async function createTestServer() {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'profile-system-'));
-  const dataFile = path.join(tempDir, 'profiles.json');
-  const store = createProfileStore(dataFile);
-  const app = createApp({ store });
+  const app = createApp();
   const server = http.createServer(app);
   server.listen(0);
 
@@ -19,119 +12,82 @@ async function createTestServer() {
   const { port } = server.address();
 
   return {
-    store,
     url: `http://127.0.0.1:${port}`,
     close: () => new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())))
   };
 }
 
-test('GET /api/profiles returns seeded profiles', async () => {
+test('getContentType returns expected values for core assets', () => {
+  assert.equal(getContentType('index.html'), 'text/html; charset=utf-8');
+  assert.equal(getContentType('styles.css'), 'text/css; charset=utf-8');
+  assert.equal(getContentType('app.js'), 'application/javascript; charset=utf-8');
+});
+
+test('GET /health returns frontend-only status', async () => {
+  const server = await createTestServer();
+
+  try {
+    const response = await fetch(`${server.url}/health`);
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.status, 'ok');
+    assert.equal(payload.mode, 'frontend-only');
+  } finally {
+    await server.close();
+  }
+});
+
+test('GET / serves the landing page shell', async () => {
+  const server = await createTestServer();
+
+  try {
+    const response = await fetch(`${server.url}/`);
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.match(html, /Profile System \| Premium Frontend Demo/);
+    assert.match(html, /Launch workspace/);
+    assert.match(html, /Hydrating browser data/);
+  } finally {
+    await server.close();
+  }
+});
+
+test('GET /app.js serves the client module entrypoint', async () => {
+  const server = await createTestServer();
+
+  try {
+    const response = await fetch(`${server.url}/app.js`);
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type'), /application\/javascript/);
+    const script = await response.text();
+    assert.match(script, /hydrateProfiles\(\)/);
+  } finally {
+    await server.close();
+  }
+});
+
+test('GET /api/profiles returns a frontend-only guidance message', async () => {
   const server = await createTestServer();
 
   try {
     const response = await fetch(`${server.url}/api/profiles`);
-    assert.equal(response.status, 200);
+    assert.equal(response.status, 404);
     const payload = await response.json();
-    assert.equal(payload.total, 2);
-    assert.equal(payload.profiles[0].fullName, 'Avery Johnson');
+    assert.match(payload.message, /frontend-only app/i);
+    assert.match(payload.message, /IndexedDB/i);
   } finally {
     await server.close();
   }
 });
 
-test('POST /api/profiles creates a new profile', async () => {
+test('unknown routes fall back to index.html for SPA hosting', async () => {
   const server = await createTestServer();
 
   try {
-    const response = await fetch(`${server.url}/api/profiles`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fullName: 'Taylor Brooks',
-        email: 'taylor@example.com',
-        role: 'QA Engineer',
-        bio: 'Owns release quality and automated coverage across the platform.',
-        location: 'Denver, CO',
-        skills: 'Testing, Playwright, CI'
-      })
-    });
-
-    assert.equal(response.status, 201);
-    const profile = await response.json();
-    assert.equal(profile.fullName, 'Taylor Brooks');
-    assert.deepEqual(profile.skills, ['Testing', 'Playwright', 'CI']);
-
-    const listResponse = await fetch(`${server.url}/api/profiles`);
-    const listPayload = await listResponse.json();
-    assert.equal(listPayload.total, 3);
-  } finally {
-    await server.close();
-  }
-});
-
-test('PUT /api/profiles/:id updates an existing profile', async () => {
-  const server = await createTestServer();
-
-  try {
-    const existing = server.store.list()[0];
-    const response = await fetch(`${server.url}/api/profiles/${existing.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fullName: existing.fullName,
-        email: existing.email,
-        role: 'Lead Product Designer',
-        bio: `${existing.bio} Focused on mentoring and design ops.`,
-        location: existing.location,
-        avatar: existing.avatar,
-        skills: existing.skills.concat('Leadership')
-      })
-    });
-
+    const response = await fetch(`${server.url}/workspace/demo`);
     assert.equal(response.status, 200);
-    const updated = await response.json();
-    assert.equal(updated.role, 'Lead Product Designer');
-    assert.ok(updated.skills.includes('Leadership'));
-  } finally {
-    await server.close();
-  }
-});
-
-test('DELETE /api/profiles/:id removes an existing profile', async () => {
-  const server = await createTestServer();
-
-  try {
-    const existing = server.store.list()[0];
-    const response = await fetch(`${server.url}/api/profiles/${existing.id}`, { method: 'DELETE' });
-    assert.equal(response.status, 204);
-
-    const listResponse = await fetch(`${server.url}/api/profiles`);
-    const listPayload = await listResponse.json();
-    assert.equal(listPayload.total, 1);
-  } finally {
-    await server.close();
-  }
-});
-
-test('POST /api/profiles validates required fields', async () => {
-  const server = await createTestServer();
-
-  try {
-    const response = await fetch(`${server.url}/api/profiles`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fullName: 'x',
-        email: 'invalid-email',
-        role: '',
-        bio: 'short'
-      })
-    });
-
-    assert.equal(response.status, 400);
-    const payload = await response.json();
-    assert.equal(payload.message, 'Validation failed.');
-    assert.ok(payload.errors.length >= 3);
+    const html = await response.text();
+    assert.match(html, /Profile directory/);
   } finally {
     await server.close();
   }

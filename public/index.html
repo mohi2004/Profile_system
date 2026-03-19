@@ -3,98 +3,274 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Profile System</title>
+    <meta
+      name="description"
+      content="A premium, frontend-only profile system demo with IndexedDB persistence, advanced visuals, and polished profile management workflows."
+    />
+    <title>Profile System | Premium Frontend Demo</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <div class="app-shell">
-      <header class="hero">
-        <div>
-          <p class="eyebrow">Profile System</p>
-          <h1>Manage team profiles from a simple dashboard.</h1>
+    <div class="background-layer background-layer--grid" aria-hidden="true"></div>
+    <div class="background-layer background-layer--glow" aria-hidden="true"></div>
+    <div class="background-noise" aria-hidden="true"></div>
+
+    <header class="site-header glass-panel">
+      <a class="brand" href="#top" aria-label="Profile System home">
+        <span class="brand-mark">PS</span>
+        <span>
+          <strong>Profile System</strong>
+          <small>Frontend-only portfolio demo</small>
+        </span>
+      </a>
+
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="#capabilities">Capabilities</a>
+        <a href="#workspace">Workspace</a>
+        <a href="#profiles-section">Profiles</a>
+      </nav>
+
+      <div class="header-actions">
+        <button id="theme-toggle" class="ghost-button small-button" type="button" aria-label="Toggle theme">
+          Theme
+        </button>
+        <a class="primary-button small-button" href="#workspace">Launch workspace</a>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero-section section-shell">
+        <div class="hero-copy-block">
+          <p class="eyebrow">Premium profile orchestration</p>
+          <h1>Transform profile management into a polished technical showcase.</h1>
           <p class="hero-copy">
-            Create, edit, filter, and remove profiles with a lightweight Node.js app and a vanilla dashboard.
+            A modern profile system with cinematic UI depth, fast client-side workflows, and resilient IndexedDB persistence built for recruiter demos and college project presentations.
+          </p>
+
+          <div class="hero-actions">
+            <a class="primary-button" href="#workspace">Create profiles</a>
+            <a class="ghost-button" href="#profiles-section">Explore directory</a>
+          </div>
+
+          <div class="hero-metrics">
+            <article class="metric-card glass-panel">
+              <span id="hero-total-profiles">0</span>
+              <small>Profiles available locally</small>
+            </article>
+            <article class="metric-card glass-panel">
+              <span id="hero-role-count">0</span>
+              <small>Unique role clusters</small>
+            </article>
+            <article class="metric-card glass-panel">
+              <span>IndexedDB</span>
+              <small>Browser-first persistence</small>
+            </article>
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-hidden="true">
+          <div class="orb orb--large"></div>
+          <div class="orb orb--small"></div>
+          <div class="hero-stack glass-panel">
+            <div class="hero-stack__header">
+              <span class="signal-dot"></span>
+              <span class="signal-dot"></span>
+              <span class="signal-dot"></span>
+            </div>
+            <div class="hero-stack__body">
+              <article class="floating-card floating-card--primary">
+                <p>System status</p>
+                <h2>Ready for profile creation</h2>
+                <div class="mini-bar-chart">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </article>
+              <article class="floating-card floating-card--secondary">
+                <p>Local-first storage</p>
+                <ul>
+                  <li>Offline-capable browser data</li>
+                  <li>Safe local hydration flow</li>
+                  <li>No backend database required</li>
+                </ul>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="capabilities" class="section-shell capabilities-section">
+        <div class="section-heading">
+          <p class="eyebrow">Why this feels premium</p>
+          <h2>Built with layered interaction patterns and a maintainable browser-only architecture.</h2>
+          <p>
+            The experience focuses on visual hierarchy, micro-interactions, clean information density, and resilient local persistence that still works after deployment to Vercel.
           </p>
         </div>
-        <div class="hero-stats">
+
+        <div class="capability-grid">
+          <article class="feature-card glass-panel tilt-card">
+            <span class="feature-icon">01</span>
+            <h3>High-impact landing experience</h3>
+            <p>Gradient depth, animated hero layers, hover elevation, and premium section composition create a sharper first impression.</p>
+          </article>
+          <article class="feature-card glass-panel tilt-card">
+            <span class="feature-icon">02</span>
+            <h3>Frontend-only data architecture</h3>
+            <p>Profiles are stored, edited, deleted, and hydrated entirely through IndexedDB without fake API dependencies.</p>
+          </article>
+          <article class="feature-card glass-panel tilt-card">
+            <span class="feature-icon">03</span>
+            <h3>Recruiter-friendly workspace</h3>
+            <p>Clear status feedback, validations, smart empty states, and an inspectable profile view make demos feel deliberate and polished.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="workspace" class="section-shell workspace-shell">
+        <div class="section-heading section-heading--compact">
+          <p class="eyebrow">Workspace</p>
+          <h2>Design, validate, and manage local profile records.</h2>
+          <p>Every change is persisted in the browser so the system remains frontend-only and deployment-safe.</p>
+        </div>
+
+        <div class="workspace-grid">
+          <section class="panel panel--form glass-panel">
+            <div class="panel-header">
+              <div>
+                <h3>Profile builder</h3>
+                <p>Create or refine technical profiles with structured details and strong visual feedback.</p>
+              </div>
+              <button id="reset-form" class="ghost-button small-button" type="button">New draft</button>
+            </div>
+
+            <form id="profile-form" class="profile-form" novalidate>
+              <input id="profile-id" type="hidden" />
+
+              <label>
+                Full name
+                <input id="fullName" name="fullName" type="text" placeholder="Jordan Lee" maxlength="80" required />
+              </label>
+
+              <label>
+                Email
+                <input id="email" name="email" type="email" placeholder="jordan@example.com" maxlength="120" required />
+              </label>
+
+              <label>
+                Role
+                <input id="role" name="role" type="text" placeholder="Frontend Engineer" maxlength="80" required />
+              </label>
+
+              <label>
+                Location
+                <input id="location" name="location" type="text" placeholder="New York, NY" maxlength="80" />
+              </label>
+
+              <label class="full-span">
+                Avatar URL
+                <input id="avatar" name="avatar" type="url" placeholder="https://example.com/avatar.png" maxlength="250" />
+              </label>
+
+              <label class="full-span">
+                Skills
+                <input id="skills" name="skills" type="text" placeholder="React, Accessibility, UI Engineering" maxlength="180" />
+              </label>
+
+              <label class="full-span">
+                Bio
+                <textarea id="bio" name="bio" rows="5" placeholder="Describe the profile's specialty, impact, and domain focus." maxlength="320" required></textarea>
+                <small id="bio-counter" class="field-hint">0 / 320</small>
+              </label>
+
+              <div class="form-actions full-span">
+                <button id="submit-button" class="primary-button" type="submit">Save profile</button>
+                <button id="delete-current" class="danger-button" type="button" disabled>Delete selected</button>
+              </div>
+
+              <p id="form-status" class="status-message full-span" aria-live="polite"></p>
+              <ul id="validation-errors" class="validation-list full-span" aria-live="polite"></ul>
+            </form>
+          </section>
+
+          <aside class="panel panel--insights glass-panel">
+            <div class="panel-header panel-header--stacked">
+              <div>
+                <h3>System telemetry</h3>
+                <p>Contextual insights generated directly from the local dataset.</p>
+              </div>
+            </div>
+
+            <div class="insight-stack">
+              <article class="insight-card">
+                <span class="insight-label">Local records</span>
+                <strong id="insight-total">0</strong>
+              </article>
+              <article class="insight-card">
+                <span class="insight-label">Top specialization</span>
+                <strong id="insight-top-role">No data yet</strong>
+              </article>
+              <article class="insight-card">
+                <span class="insight-label">Last profile updated</span>
+                <strong id="insight-last-updated">Waiting for activity</strong>
+              </article>
+            </div>
+
+            <div id="selected-profile-panel" class="selected-profile-card">
+              <p class="selected-profile-placeholder">Select a profile to inspect its details here.</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="profiles-section" class="section-shell profiles-section">
+        <div class="section-heading section-heading--split">
           <div>
-            <span id="profile-count">0</span>
-            <small>Profiles</small>
+            <p class="eyebrow">Profile directory</p>
+            <h2>Browse and filter profiles with a polished, high-density layout.</h2>
           </div>
-          <div>
-            <span>JSON</span>
-            <small>Persistent storage</small>
+          <div class="directory-actions">
+            <button id="seed-demo-data" class="ghost-button small-button" type="button">Reload demo data</button>
+            <button id="clear-all-data" class="danger-button small-button" type="button">Clear local data</button>
           </div>
         </div>
-      </header>
 
-      <main class="content-grid">
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <h2>Add or update a profile</h2>
-              <p>Fill out the form and save the profile to the local data store.</p>
-            </div>
-            <button id="reset-form" class="ghost-button" type="button">New profile</button>
-          </div>
+        <div class="directory-toolbar glass-panel">
+          <label>
+            Search profiles
+            <input id="search" type="search" placeholder="Search by name, email, bio, skill, or location" />
+          </label>
+          <label>
+            Filter by role
+            <input id="role-filter" type="search" placeholder="e.g. engineer" />
+          </label>
+          <label>
+            Sort
+            <select id="sort-order">
+              <option value="updated-desc">Recently updated</option>
+              <option value="name-asc">Name A-Z</option>
+              <option value="role-asc">Role A-Z</option>
+            </select>
+          </label>
+        </div>
 
-          <form id="profile-form" class="profile-form">
-            <input id="profile-id" type="hidden" />
-            <label>
-              Full name
-              <input id="fullName" name="fullName" type="text" placeholder="Jordan Lee" required />
-            </label>
-            <label>
-              Email
-              <input id="email" name="email" type="email" placeholder="jordan@example.com" required />
-            </label>
-            <label>
-              Role
-              <input id="role" name="role" type="text" placeholder="Frontend Engineer" required />
-            </label>
-            <label>
-              Location
-              <input id="location" name="location" type="text" placeholder="New York, NY" />
-            </label>
-            <label>
-              Avatar URL
-              <input id="avatar" name="avatar" type="url" placeholder="https://..." />
-            </label>
-            <label>
-              Skills
-              <input id="skills" name="skills" type="text" placeholder="React, TypeScript, Accessibility" />
-            </label>
-            <label class="full-span">
-              Bio
-              <textarea id="bio" name="bio" rows="4" placeholder="Tell people what this profile is about." required></textarea>
-            </label>
-            <div class="form-actions full-span">
-              <button class="primary-button" type="submit">Save profile</button>
-              <p id="form-status" class="status-message" aria-live="polite"></p>
-            </div>
-          </form>
-        </section>
+        <div id="loading-state" class="loading-state glass-panel" hidden>
+          <div class="spinner" aria-hidden="true"></div>
+          <p>Hydrating browser data…</p>
+        </div>
 
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <h2>Browse profiles</h2>
-              <p>Search by name, role, location, bio, or skill.</p>
-            </div>
-          </div>
-
-          <div class="toolbar">
-            <input id="search" type="search" placeholder="Search profiles..." />
-            <input id="role-filter" type="search" placeholder="Filter by role..." />
-          </div>
-
-          <div id="profiles" class="profiles-grid"></div>
-        </section>
-      </main>
-    </div>
+        <div id="profiles" class="profiles-grid" aria-live="polite"></div>
+      </section>
+    </main>
 
     <template id="profile-card-template">
-      <article class="profile-card">
+      <article class="profile-card glass-panel tilt-card">
+        <div class="profile-card__topline">
+          <span class="profile-card__badge">Local profile</span>
+          <span class="profile-card__updated"></span>
+        </div>
         <div class="profile-card-header">
           <img class="avatar" alt="" />
           <div>
@@ -107,12 +283,15 @@
         <p class="profile-location"></p>
         <div class="skills-list"></div>
         <div class="card-actions">
-          <button class="ghost-button edit-button" type="button">Edit</button>
-          <button class="danger-button delete-button" type="button">Delete</button>
+          <button class="ghost-button edit-button small-button" type="button">Edit</button>
+          <button class="ghost-button inspect-button small-button" type="button">Inspect</button>
+          <button class="danger-button delete-button small-button" type="button">Delete</button>
         </div>
       </article>
     </template>
 
-    <script src="/app.js" defer></script>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+    <script type="module" src="/app.js"></script>
   </body>
 </html>

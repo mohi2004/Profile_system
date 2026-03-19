@@ -1,7 +1,7 @@
 {
   "name": "profile-system",
   "version": "1.0.0",
-  "description": "A simple profile management system with a REST API and web dashboard.",
+  "description": "A premium frontend-only profile system demo with IndexedDB persistence.",
   "main": "src/server.js",
   "type": "commonjs",
   "scripts": {

@@ -1,8 +1,9 @@
 import { DEMO_PROFILES } from './demoProfiles.js';
 
 const DB_NAME = 'profile-system-db';
-const DB_VERSION = 1;
-const STORE_NAME = 'profiles';
+const DB_VERSION = 2;
+const PROFILES_STORE = 'profiles';
+const LIKES_STORE = 'likes';
 
 function promisifyRequest(request) {
   return new Promise((resolve, reject) => {
@@ -21,9 +22,15 @@ async function openDatabase() {
 
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        store.createIndex('updatedAt', 'updatedAt', { unique: false });
+
+      if (!db.objectStoreNames.contains(PROFILES_STORE)) {
+        const profilesStore = db.createObjectStore(PROFILES_STORE, { keyPath: 'id' });
+        profilesStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(LIKES_STORE)) {
+        const likesStore = db.createObjectStore(LIKES_STORE, { keyPath: 'profileId' });
+        likesStore.createIndex('likedAt', 'likedAt', { unique: false });
       }
     };
 
@@ -32,17 +39,40 @@ async function openDatabase() {
   });
 }
 
-async function runTransaction(mode, executor) {
+function isValidProfile(profile) {
+  return profile
+    && typeof profile.id === 'string'
+    && typeof profile.fullName === 'string'
+    && typeof profile.email === 'string'
+    && typeof profile.role === 'string'
+    && typeof profile.bio === 'string';
+}
+
+async function withStore(storeName, mode, runner) {
   const db = await openDatabase();
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, mode);
-    const store = transaction.objectStore(STORE_NAME);
-    const result = executor(store, transaction);
+    const transaction = db.transaction(storeName, mode);
+    const store = transaction.objectStore(storeName);
+    let settled = false;
+
+    const complete = (value) => {
+      settled = true;
+      resolve(value);
+    };
+
+    Promise.resolve()
+      .then(() => runner(store, transaction, complete))
+      .catch((error) => {
+        settled = true;
+        reject(error);
+      });
 
     transaction.oncomplete = () => {
       db.close();
-      resolve(result);
+      if (!settled) {
+        resolve(undefined);
+      }
     };
 
     transaction.onerror = () => {
@@ -57,21 +87,12 @@ async function runTransaction(mode, executor) {
   });
 }
 
-function isValidProfile(profile) {
-  return profile
-    && typeof profile.id === 'string'
-    && typeof profile.fullName === 'string'
-    && typeof profile.email === 'string'
-    && typeof profile.role === 'string'
-    && typeof profile.bio === 'string';
-}
-
 export async function getAllProfiles() {
   const db = await openDatabase();
 
   try {
-    const transaction = db.transaction(STORE_NAME, 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
+    const transaction = db.transaction(PROFILES_STORE, 'readonly');
+    const store = transaction.objectStore(PROFILES_STORE);
     const request = store.getAll();
     const records = await promisifyRequest(request);
     return Array.isArray(records) ? records.filter(isValidProfile) : [];
@@ -81,24 +102,30 @@ export async function getAllProfiles() {
 }
 
 export async function upsertProfile(profile) {
-  return runTransaction('readwrite', (store) => {
+  return withStore(PROFILES_STORE, 'readwrite', (store, _transaction, complete) => {
     store.put(profile);
-    return profile;
+    complete(profile);
   });
 }
 
 export async function deleteProfile(id) {
-  return runTransaction('readwrite', (store) => {
+  await withStore(PROFILES_STORE, 'readwrite', (store, _transaction, complete) => {
     store.delete(id);
-    return true;
+    complete(true);
   });
+
+  await unlikeProfile(id);
+  return true;
 }
 
 export async function clearProfiles() {
-  return runTransaction('readwrite', (store) => {
+  await withStore(PROFILES_STORE, 'readwrite', (store, _transaction, complete) => {
     store.clear();
-    return true;
+    complete(true);
   });
+
+  await clearLikes();
+  return true;
 }
 
 export async function seedProfiles(force = false) {
@@ -111,12 +138,59 @@ export async function seedProfiles(force = false) {
     await clearProfiles();
   }
 
-  await runTransaction('readwrite', (store) => {
+  await withStore(PROFILES_STORE, 'readwrite', (store, _transaction, complete) => {
     DEMO_PROFILES.forEach((profile) => store.put({ ...profile }));
-    return true;
+    complete(true);
   });
 
   return getAllProfiles();
+}
+
+export async function getLikedProfileIds() {
+  const db = await openDatabase();
+
+  try {
+    const transaction = db.transaction(LIKES_STORE, 'readonly');
+    const store = transaction.objectStore(LIKES_STORE);
+    const request = store.getAllKeys();
+    const ids = await promisifyRequest(request);
+    return Array.isArray(ids) ? ids.map(String) : [];
+  } finally {
+    db.close();
+  }
+}
+
+export async function likeProfile(profileId) {
+  return withStore(LIKES_STORE, 'readwrite', (store, _transaction, complete) => {
+    store.put({ profileId, likedAt: new Date().toISOString() });
+    complete(true);
+  });
+}
+
+export async function unlikeProfile(profileId) {
+  return withStore(LIKES_STORE, 'readwrite', (store, _transaction, complete) => {
+    store.delete(profileId);
+    complete(true);
+  });
+}
+
+export async function clearLikes() {
+  return withStore(LIKES_STORE, 'readwrite', (store, _transaction, complete) => {
+    store.clear();
+    complete(true);
+  });
+}
+
+export async function toggleProfileLike(profileId) {
+  const likedIds = new Set(await getLikedProfileIds());
+
+  if (likedIds.has(profileId)) {
+    await unlikeProfile(profileId);
+    return false;
+  }
+
+  await likeProfile(profileId);
+  return true;
 }
 
 export async function recoverDatabase() {

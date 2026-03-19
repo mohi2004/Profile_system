@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile System</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Profile System</p>
+          <h1>Manage team profiles from a simple dashboard.</h1>
+          <p class="hero-copy">
+            Create, edit, filter, and remove profiles with a lightweight Node.js app and a vanilla dashboard.
+          </p>
+        </div>
+        <div class="hero-stats">
+          <div>
+            <span id="profile-count">0</span>
+            <small>Profiles</small>
+          </div>
+          <div>
+            <span>JSON</span>
+            <small>Persistent storage</small>
+          </div>
+        </div>
+      </header>
+
+      <main class="content-grid">
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Add or update a profile</h2>
+              <p>Fill out the form and save the profile to the local data store.</p>
+            </div>
+            <button id="reset-form" class="ghost-button" type="button">New profile</button>
+          </div>
+
+          <form id="profile-form" class="profile-form">
+            <input id="profile-id" type="hidden" />
+            <label>
+              Full name
+              <input id="fullName" name="fullName" type="text" placeholder="Jordan Lee" required />
+            </label>
+            <label>
+              Email
+              <input id="email" name="email" type="email" placeholder="jordan@example.com" required />
+            </label>
+            <label>
+              Role
+              <input id="role" name="role" type="text" placeholder="Frontend Engineer" required />
+            </label>
+            <label>
+              Location
+              <input id="location" name="location" type="text" placeholder="New York, NY" />
+            </label>
+            <label>
+              Avatar URL
+              <input id="avatar" name="avatar" type="url" placeholder="https://..." />
+            </label>
+            <label>
+              Skills
+              <input id="skills" name="skills" type="text" placeholder="React, TypeScript, Accessibility" />
+            </label>
+            <label class="full-span">
+              Bio
+              <textarea id="bio" name="bio" rows="4" placeholder="Tell people what this profile is about." required></textarea>
+            </label>
+            <div class="form-actions full-span">
+              <button class="primary-button" type="submit">Save profile</button>
+              <p id="form-status" class="status-message" aria-live="polite"></p>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Browse profiles</h2>
+              <p>Search by name, role, location, bio, or skill.</p>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <input id="search" type="search" placeholder="Search profiles..." />
+            <input id="role-filter" type="search" placeholder="Filter by role..." />
+          </div>
+
+          <div id="profiles" class="profiles-grid"></div>
+        </section>
+      </main>
+    </div>
+
+    <template id="profile-card-template">
+      <article class="profile-card">
+        <div class="profile-card-header">
+          <img class="avatar" alt="" />
+          <div>
+            <h3 class="profile-name"></h3>
+            <p class="profile-role"></p>
+            <p class="profile-email"></p>
+          </div>
+        </div>
+        <p class="profile-bio"></p>
+        <p class="profile-location"></p>
+        <div class="skills-list"></div>
+        <div class="card-actions">
+          <button class="ghost-button edit-button" type="button">Edit</button>
+          <button class="danger-button delete-button" type="button">Delete</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

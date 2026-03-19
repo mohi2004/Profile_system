@@ -1,37 +1,46 @@
 # Profile System
 
-A lightweight profile management system built with **Node.js** and a small vanilla frontend. It gives you a ready-to-run dashboard and REST API for creating, updating, searching, and deleting user or team profiles.
+A visually advanced, frontend-only profile management demo built for polished college-project presentations and recruiter-facing demos. The app is served as a lightweight static experience, while profile data persists locally in the browser through **IndexedDB**.
+
+## What changed
+
+- Rebuilt the experience around a premium landing page and modern dashboard flow.
+- Removed the backend dependency for core profile data.
+- Migrated persistence from file-based JSON storage to **browser-only IndexedDB**.
+- Added stronger visual hierarchy, glassmorphism, layered gradients, smooth motion, hover depth, and better responsive behavior.
 
 ## Features
 
-- Create, edit, and delete profiles from the browser UI.
-- Search profiles by name, email, role, location, bio, or skills.
-- Filter profiles by role.
-- Persist data locally in `data/profiles.json`.
-- Use the included REST API for integration with another app.
-- Start with seeded example profiles for quick testing.
+- Premium animated landing page with layered visual effects.
+- Frontend-only profile creation, editing, inspection, searching, filtering, sorting, and deletion.
+- Local browser persistence using IndexedDB.
+- Demo profile seeding, reset flow, empty states, loading states, and success feedback.
+- Theme toggle persisted with localStorage.
+- Static hosting compatibility for Vercel deployment.
 
 ## Tech stack
 
-- **Backend:** Node.js HTTP server
-- **Frontend:** HTML, CSS, and vanilla JavaScript
-- **Storage:** JSON file persistence
+- **Runtime / local hosting:** Node.js static server
+- **Frontend:** HTML, CSS, vanilla JavaScript modules
+- **Primary persistence:** IndexedDB
+- **Small UI preference storage:** localStorage
 - **Testing:** Node's built-in test runner
 
 ## Project structure
 
 ```text
 .
-├── data/
-│   └── profiles.json        # Local persistent profile data
 ├── public/
-│   ├── app.js               # Frontend logic
-│   ├── index.html           # Dashboard UI
-│   └── styles.css           # Styling
+│   ├── js/
+│   │   ├── demoProfiles.js    # Seeded browser demo data
+│   │   ├── storage.js         # IndexedDB persistence layer
+│   │   └── validation.js      # Sanitization, filtering, sorting, validation helpers
+│   ├── app.js                 # Client app orchestration and UI state
+│   ├── index.html             # Landing page + workspace UI
+│   └── styles.css             # Premium design system and responsive styling
 ├── src/
-│   ├── app.js               # Server routing + API handlers
-│   ├── profileStore.js      # File-based profile storage
-│   └── server.js            # App entrypoint
+│   ├── app.js                 # Static file server + SPA fallback
+│   └── server.js              # Local entrypoint
 ├── tests/
 │   └── profile-system.test.js
 └── README.md
@@ -49,7 +58,7 @@ No third-party packages are required.
 npm start
 ```
 
-The app runs on `http://localhost:3000` by default.
+Open `http://localhost:3000`.
 
 ### 3. Run tests
 
@@ -57,65 +66,25 @@ The app runs on `http://localhost:3000` by default.
 npm test
 ```
 
-## Available scripts
+## Persistence model
 
-- `npm start` – start the production server
-- `npm run dev` – start the server in watch mode
-- `npm test` – run the API test suite
+This project is intentionally **frontend-only**:
 
-## REST API
+- Profile records are stored in the user's browser via IndexedDB.
+- Data is not shared across devices or browsers.
+- Deploying to Vercel does not require a database.
+- No server-side file writes, cloud persistence, or backend APIs are used for core data.
 
-### `GET /api/profiles`
-Returns all profiles.
+## Deployment notes
 
-**Query params**
-- `q`: free-text search across profile fields
-- `role`: role filter
+The app is compatible with Vercel-style static hosting patterns because:
 
-### `GET /api/profiles/:id`
-Returns a single profile.
+- the Node server only serves static assets locally,
+- the UI hydrates itself from IndexedDB in the browser,
+- and unknown routes fall back to `index.html`.
 
-### `POST /api/profiles`
-Creates a profile.
+## Demo behavior
 
-**Request body**
-
-```json
-{
-  "fullName": "Taylor Brooks",
-  "email": "taylor@example.com",
-  "role": "QA Engineer",
-  "location": "Denver, CO",
-  "avatar": "https://example.com/avatar.png",
-  "skills": "Testing, Playwright, CI",
-  "bio": "Owns release quality and automated coverage across the platform."
-}
-```
-
-### `PUT /api/profiles/:id`
-Updates an existing profile.
-
-### `DELETE /api/profiles/:id`
-Deletes a profile.
-
-## Validation rules
-
-A profile must include:
-
-- `fullName` with at least 2 characters
-- a valid `email`
-- `role` with at least 2 characters
-- `bio` with at least 10 characters
-
-## Customization ideas
-
-- Swap the JSON store for SQLite or PostgreSQL.
-- Add authentication before exposing edit/delete actions.
-- Add profile image uploads instead of URL-based avatars.
-- Extend the model with social links, teams, or permissions.
-
-## Notes
-
-- The seeded profiles live in `data/profiles.json`.
-- If you delete the data file, it is recreated automatically with demo profiles.
-- The frontend falls back to generated avatars when no avatar URL is provided.
+- If no local profiles exist, the app seeds demo profiles into IndexedDB.
+- Users can clear local data or reload the demo dataset from the UI.
+- If browser data becomes unreadable, the app attempts to recover by resetting and reseeding the local IndexedDB database.
